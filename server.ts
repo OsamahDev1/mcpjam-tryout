@@ -27,41 +27,29 @@ const uiHtml = readFileSync(
 const RESOURCE_URI = "ui://enrollment/enrollment-app.html";
 
 // Tool _meta for MCP App widget rendering — tells the inspector this tool has a UI
-const TOOL_UI_META = {
-  ui: {
-    resourceUri: RESOURCE_URI,
-    domain: "https://edu.cupstatus.com",
-    csp: {
-      connectDomains: ["edu.cupstatus.com"],
-      resourceDomains: [],
-      frameDomains: [],
-    },
-  },
-};
+const TOOL_UI_META = { ui: { resourceUri: RESOURCE_URI } };
 
 function registerToolsAndResources(server: McpServer) {
   server.resource(
     "enrollment-app",
     RESOURCE_URI,
-    {
-      mimeType: RESOURCE_MIME_TYPE,
-      _meta: {
-        ui: {
-          domain: "https://edu.cupstatus.com",
-          csp: {
-            connectDomains: ["edu.cupstatus.com"],
-            resourceDomains: [],
-            frameDomains: [],
-          },
-        },
-      },
-    },
+    { mimeType: RESOURCE_MIME_TYPE },
     async () => ({
       contents: [
         {
           uri: RESOURCE_URI,
           mimeType: RESOURCE_MIME_TYPE,
           text: uiHtml,
+          _meta: {
+            ui: {
+              domain: "https://edu.cupstatus.com",
+              csp: {
+                connectDomains: ["https://edu.cupstatus.com"],
+                resourceDomains: [],
+                frameDomains: [],
+              },
+            },
+          },
         },
       ],
     })
@@ -70,8 +58,14 @@ function registerToolsAndResources(server: McpServer) {
   server.registerTool(
     "search_programs",
     {
+      title: "Search programs",
       description: "Search for educational programs by describing your background or interests in English (e.g. 'software engineer', 'cyber security', 'health'). Returns matching educational programs.",
       inputSchema: { query: z.string().describe("Search query in English describing your background or interests") },
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
       _meta: TOOL_UI_META,
     },
     async ({ query }) => {
@@ -96,7 +90,13 @@ function registerToolsAndResources(server: McpServer) {
   server.registerTool(
     "list_programs",
     {
+      title: "List programs",
       description: "List and filter educational programs. Filter by type (academic_degree or nanodegree), organization name, or maximum price.",
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
       inputSchema: {
         type: z
           .enum(["academic_degree", "nanodegree"])
@@ -135,7 +135,13 @@ function registerToolsAndResources(server: McpServer) {
   server.registerTool(
     "enroll_in_program",
     {
-      description: "Simulate enrollment in a specific program by its ID.",
+      title: "Enroll in program",
+      description: "Enroll in a specific educational program by its ID.",
+      annotations: {
+        readOnlyHint: false,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
       inputSchema: {
         programId: z.number().describe("The program ID to enroll in"),
       },

@@ -1,6 +1,5 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
 
 interface Organization {
   id: string;
@@ -35,9 +34,11 @@ function App() {
   const [view, setView] = useState<View>("empty");
   const [query, setQuery] = useState("");
 
+  const [connected, setConnected] = useState(false);
+  const connectedRef = useRef(false);
+
   const handleToolResult = useCallback(
     (params: any) => {
-      // params is CallToolResult: { content, structuredContent, isError }
       const data = params?.structuredContent;
       if (!data) return;
       const action = data.action as string;
@@ -55,16 +56,47 @@ function App() {
     []
   );
 
-  const { app, isConnected, error } = useApp({
-    appInfo: { name: "EduConnect Enrollment", version: "1.0.0" },
-    capabilities: {},
-    onAppCreated: (createdApp) => {
-      createdApp.ontoolresult = handleToolResult;
-    }
-  });
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return;
+      const msg = event.data;
+      if (!msg || msg.jsonrpc !== "2.0") return;
 
-  if (error) return <div style={styles.container}><p>Error: {error.message}</p></div>;
-  if (!isConnected || !app) return <div style={styles.container}><p>Connecting...</p></div>;
+      if (msg.method === "ui/notifications/tool-result") {
+        handleToolResult(msg.params);
+      }
+
+      // Mark as connected on any valid message from host
+      if (!connectedRef.current) {
+        connectedRef.current = true;
+        setConnected(true);
+      }
+    };
+
+    window.addEventListener("message", onMessage, { passive: true });
+
+    // Signal readiness to host — try both MCPJam and ChatGPT patterns
+    try {
+      window.parent.postMessage(
+        { jsonrpc: "2.0", method: "ui/notifications/initialized", params: {} },
+        "*"
+      );
+    } catch (_) {}
+
+    // Mark connected after a short delay if no messages received
+    // (widget may already have data or host sends later)
+    const timer = setTimeout(() => {
+      if (!connectedRef.current) {
+        connectedRef.current = true;
+        setConnected(true);
+      }
+    }, 500);
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      clearTimeout(timer);
+    };
+  }, [handleToolResult]);
 
   const handleCardClick = (program: Program) => {
     setSelected(program);
@@ -82,11 +114,19 @@ function App() {
   };
 
   const handleEnroll = (program: Program) => {
-    if (!app) return;
-    app.sendMessage({
-      role: "user",
-      content: [{ type: "text", text: `Please enroll me in the program with ID ${program.id} ("${program.title}")` }]
-    });
+    try {
+      window.parent.postMessage(
+        {
+          jsonrpc: "2.0",
+          method: "ui/message",
+          params: {
+            role: "user",
+            content: [{ type: "text", text: `Please enroll me in the program with ID ${program.id} ("${program.title}")` }],
+          },
+        },
+        "*"
+      );
+    } catch (_) {}
   };
 
   const formatPrice = (program: Program) => {

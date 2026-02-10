@@ -10,8 +10,8 @@
     "dev": "npm run build && npm start"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@modelcontextprotocol/ext-apps": "^0.0.7",
     "express": "^4.19.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

@@ -27,13 +27,35 @@ const uiHtml = readFileSync(
 const RESOURCE_URI = "ui://enrollment/enrollment-app.html";
 
 // Tool _meta for MCP App widget rendering — tells the inspector this tool has a UI
-const TOOL_UI_META = { ui: { resourceUri: RESOURCE_URI } };
+const TOOL_UI_META = {
+  ui: {
+    resourceUri: RESOURCE_URI,
+    domain: "https://edu.cupstatus.com",
+    csp: {
+      connectDomains: ["edu.cupstatus.com"],
+      resourceDomains: [],
+      frameDomains: [],
+    },
+  },
+};
 
 function registerToolsAndResources(server: McpServer) {
   server.resource(
     "enrollment-app",
     RESOURCE_URI,
-    { mimeType: RESOURCE_MIME_TYPE },
+    {
+      mimeType: RESOURCE_MIME_TYPE,
+      _meta: {
+        ui: {
+          domain: "https://edu.cupstatus.com",
+          csp: {
+            connectDomains: ["edu.cupstatus.com"],
+            resourceDomains: [],
+            frameDomains: [],
+          },
+        },
+      },
+    },
     async () => ({
       contents: [
         {
